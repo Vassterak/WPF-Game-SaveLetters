@@ -112,7 +112,7 @@ namespace WPF_Game_SaveLetters
 
         private void physicsUpdate_Tick(object? sender, EventArgs e) //game physics timer
         {
-            int boatSpeed = 8; //px per tick
+            int boatSpeed = 10; //px per tick
             int letterSpeed = 2; //px per tick
 
             //Check if specific key is pressed on keyboard
@@ -135,23 +135,27 @@ namespace WPF_Game_SaveLetters
             //Move every letter in list
             for (int i = lettersList.Count -1; i >= 0; i--)
             {
-                Canvas.SetLeft(lettersList[i].letter, Canvas.GetLeft(lettersList[i].letter) + letterSpeed);
+                // MessageBox.Show("Width: " + lettersList[i].letter.ActualWidth.ToString());
 
-                if (Canvas.GetLeft(lettersList[i].letter) > gameCanvas.ActualWidth - 50)
+                if (lettersList[i].shouldMove)
+                    Canvas.SetLeft(lettersList[i].letter, Canvas.GetLeft(lettersList[i].letter) + letterSpeed);
+
+                //When letter gets behind canvas it gets destroyed
+                if (Canvas.GetLeft(lettersList[i].letter) > gameCanvas.ActualWidth)
                 {
                     gameCanvas.Children.Remove(lettersList[i].letter);
                     lettersList.RemoveAt(i);
                     lettersRemoved++;
+
+                    if (lettersRemoved == alphabet.Length)
+                        MessageBox.Show("The end");
                 }
+
+                if (!CollisionDetectRect(lettersList[i].letter, leftSideShore))
+                    MessageBox.Show("no collision");
+
             }
 
-            //foreach (var item in lettersList) 
-            //{
-            //    Canvas.SetLeft(item.letter, Canvas.GetLeft(item.letter) + letterSpeed);
-
-            //    if (Canvas.GetLeft(item.letter) > gameCanvas.ActualWidth - 50)
-            //        lettersList.Remove(item); //Cannot loop trought and then delete without causing exeption
-            //}
         }
 
         private void spawnRate_Tick(object? sender, EventArgs e) //SpawnRate Timer
@@ -164,7 +168,7 @@ namespace WPF_Game_SaveLetters
                 newLetter.Background = Brushes.OrangeRed;
                 newLetter.FontSize = 18;
                 Canvas.SetLeft(newLetter, 0);
-                Canvas.SetTop(newLetter, gameCanvas.ActualHeight - leftSideShore.Height - (newLetter.FontSize + 16));
+                Canvas.SetTop(newLetter, gameCanvas.ActualHeight - leftSideShore.Height - (newLetter.FontSize + 15));
 
                 gameCanvas.Children.Add(newLetter);
                 lettersList.Add(new Letters(newLetter, true, false));
@@ -174,12 +178,29 @@ namespace WPF_Game_SaveLetters
 
         }
 
-        private bool CollisionDetectRect(Rectangle shape1, Rectangle shape2)
+        private bool CollisionDetectRect(Shape shape1, Shape shape2)
         {
             Rect rect1 = new Rect(Canvas.GetLeft(shape1), Canvas.GetTop(shape1), shape1.Width, shape1.Height);
             Rect rect2 = new Rect(Canvas.GetLeft(shape2), Canvas.GetTop(shape2), shape2.Width, shape2.Height);
 
-            if (rect2.IntersectsWith(rect1))
+            if (rect1.IntersectsWith(rect2))
+                return true;
+
+            else
+                return false;
+        }
+
+        private bool CollisionDetectRect(Label label, Shape shape)
+        {
+            Rect rect1 = new Rect();
+            //rect1.Location = label.PointToScreen(new Point(0, 0));
+            rect1.Location = new Point(Canvas.GetLeft(label), Canvas.GetTop(label));
+            rect1.Height = label.ActualHeight;
+            rect1.Width = label.ActualWidth;
+
+            Rect rect2 = new Rect(Canvas.GetLeft(shape), Canvas.GetTop(shape), shape.Width, shape.Height);
+
+            if (rect1.IntersectsWith(rect2))
                 return true;
 
             else
