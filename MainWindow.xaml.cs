@@ -16,6 +16,21 @@ using System.Windows.Threading;
 
 namespace WPF_Game_SaveLetters
 {
+
+    public struct Letters //Each individial letter
+    {
+        public Label letter { get; }
+        public bool shouldMove { get; set; }
+        public bool aboard { get; set; }
+
+        public Letters(Label letter, bool shouldMove, bool aboard)
+        {
+            this.letter = letter;
+            this.shouldMove = shouldMove;
+            this.aboard = aboard;
+        }
+    }
+
     public partial class MainWindow : Window
     {
         //Game object
@@ -29,8 +44,13 @@ namespace WPF_Game_SaveLetters
         DispatcherTimer spawnRate = new DispatcherTimer();
 
         //playerMovement
-        bool keyLeftDown = false;
-        bool keyRightDown = false;
+        private bool keyLeftDown = false;
+        private bool keyRightDown = false;
+
+        //Letters
+        private int lettersRemoved = 0;
+        private char[] alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();
+        private List<Letters> lettersList = new List<Letters>();
 
         public MainWindow()
         {
@@ -40,7 +60,7 @@ namespace WPF_Game_SaveLetters
             physicsUpdate.Interval = new TimeSpan(0, 0, 0, 0, 20); //40ms => 50fps
 
             spawnRate.Tick += new EventHandler(spawnRate_Tick);
-            spawnRate.Interval = new TimeSpan(0, 0, 0, 2); //every2 seconds
+            spawnRate.Interval = new TimeSpan(0, 0, 0, 1); //every2 seconds
 
         }
 
@@ -48,7 +68,8 @@ namespace WPF_Game_SaveLetters
         {
             GenerateEnvironment();
 
-            physicsUpdate.Start(); //start timer
+            physicsUpdate.Start();
+            spawnRate.Start();
         }
 
         private void GenerateEnvironment() //left + right shores + water
@@ -87,12 +108,12 @@ namespace WPF_Game_SaveLetters
             Canvas.SetLeft(boat, leftSideShore.Width);
             Canvas.SetTop(boat, gameCanvas.ActualHeight - leftSideShore.Height);
             gameCanvas.Children.Add(boat);
-
         }
 
         private void physicsUpdate_Tick(object? sender, EventArgs e) //game physics timer
         {
-            int speed = 10; //10px per tick
+            int boatSpeed = 8; //px per tick
+            int letterSpeed = 2; //px per tick
 
             //Check if specific key is pressed on keyboard
             keyLeftDown = KeyBoardHoldCheck(Key.Left);
@@ -101,19 +122,56 @@ namespace WPF_Game_SaveLetters
             if (keyLeftDown)
             {
                 if (!CollisionDetectRect(boat, leftSideShore))
-                    Canvas.SetLeft(boat, Canvas.GetLeft(boat) - speed); //move by x pixels per physics_update (tick)
+                    Canvas.SetLeft(boat, Canvas.GetLeft(boat) - boatSpeed); //move by x pixels per physics_update (tick)
 
             }
+
             else if (keyRightDown)
             {
                 if (!CollisionDetectRect(boat, rightSideShore))
-                    Canvas.SetLeft(boat, Canvas.GetLeft(boat) + speed);
+                    Canvas.SetLeft(boat, Canvas.GetLeft(boat) + boatSpeed);
             }
+
+            //Move every letter in list
+            for (int i = lettersList.Count -1; i >= 0; i--)
+            {
+                Canvas.SetLeft(lettersList[i].letter, Canvas.GetLeft(lettersList[i].letter) + letterSpeed);
+
+                if (Canvas.GetLeft(lettersList[i].letter) > gameCanvas.ActualWidth - 50)
+                {
+                    gameCanvas.Children.Remove(lettersList[i].letter);
+                    lettersList.RemoveAt(i);
+                    lettersRemoved++;
+                }
+            }
+
+            //foreach (var item in lettersList) 
+            //{
+            //    Canvas.SetLeft(item.letter, Canvas.GetLeft(item.letter) + letterSpeed);
+
+            //    if (Canvas.GetLeft(item.letter) > gameCanvas.ActualWidth - 50)
+            //        lettersList.Remove(item); //Cannot loop trought and then delete without causing exeption
+            //}
         }
 
         private void spawnRate_Tick(object? sender, EventArgs e) //SpawnRate Timer
         {
-            throw new NotImplementedException();
+            //Creating new label
+            if ((lettersList.Count + lettersRemoved) < alphabet.Length)
+            {
+                Label newLetter = new Label();
+                newLetter.Content = alphabet[lettersList.Count + lettersRemoved];
+                newLetter.Background = Brushes.OrangeRed;
+                newLetter.FontSize = 18;
+                Canvas.SetLeft(newLetter, 0);
+                Canvas.SetTop(newLetter, gameCanvas.ActualHeight - leftSideShore.Height - (newLetter.FontSize + 16));
+
+                gameCanvas.Children.Add(newLetter);
+                lettersList.Add(new Letters(newLetter, true, false));
+            }
+            else 
+                spawnRate.Stop();
+
         }
 
         private bool CollisionDetectRect(Rectangle shape1, Rectangle shape2)
@@ -127,26 +185,6 @@ namespace WPF_Game_SaveLetters
             else
                 return false;
         }
-
-        //private void Window_KeyDown(object sender, KeyEventArgs e)
-        //{
-        //    if (e.Key == Key.Left) //player is pressing left key
-        //    {
-        //        keyLeftDown = true;
-        //        keyRightDown = false;
-        //    }
-
-        //    else if (e.Key == Key.Right) //player is pressing right key
-        //    {
-        //        keyRightDown = true;
-        //        keyLeftDown = false;
-        //    }
-        //    else
-        //    {
-        //        keyRightDown = false;
-        //        keyLeftDown = false;
-        //    }
-        //}
 
         private bool KeyBoardHoldCheck(Key key)
         {
