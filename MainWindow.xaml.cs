@@ -48,7 +48,7 @@ namespace WPF_Game_SaveLetters
         private bool keyRightDown = false;
 
         //Letters
-        private int lettersRemoved = 0;
+        private int lettersRemoved = 0, lettersSaved = 0;
         private char[] alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();
         private List<Letters> lettersList = new List<Letters>();
 
@@ -135,40 +135,49 @@ namespace WPF_Game_SaveLetters
             //Move every letter in list
             for (int i = lettersList.Count -1; i >= 0; i--)
             {
-                // MessageBox.Show("Width: " + lettersList[i].letter.ActualWidth.ToString());
 
                 if (lettersList[i].shouldMove)
                     Canvas.SetLeft(lettersList[i].letter, Canvas.GetLeft(lettersList[i].letter) + letterSpeed);
+
+                if (!CollisionDetectRect(lettersList[i].letter, leftSideShore)) //When there is no groud / boat
+                    Canvas.SetTop(lettersList[i].letter, Canvas.GetTop(lettersList[i].letter) + 10); //move down by 10px
+
+                if ((lettersRemoved + lettersSaved) == alphabet.Length)
+                    MessageBox.Show("The end");
+
 
                 //When letter gets behind canvas it gets destroyed
                 if (Canvas.GetLeft(lettersList[i].letter) > gameCanvas.ActualWidth)
                 {
                     gameCanvas.Children.Remove(lettersList[i].letter);
                     lettersList.RemoveAt(i);
-                    lettersRemoved++;
-
-                    if (lettersRemoved == alphabet.Length)
-                        MessageBox.Show("The end");
+                    lettersSaved++;
+                    labelDrowned.Content = "Počet zachráněných písmenek: " + lettersSaved;
                 }
 
-                if (!CollisionDetectRect(lettersList[i].letter, leftSideShore))
-                    MessageBox.Show("no collision");
-
+                //When letter gets behind canvas it gets destroyed (in water)
+                else if (Canvas.GetTop(lettersList[i].letter) > gameCanvas.ActualHeight)
+                {
+                    gameCanvas.Children.Remove(lettersList[i].letter);
+                    lettersList.RemoveAt(i);
+                    lettersRemoved++;
+                    
+                    labelDrowned.Content = "Počet utopených písmenek: " + lettersRemoved;
+                }
             }
-
         }
 
-        private void spawnRate_Tick(object? sender, EventArgs e) //SpawnRate Timer
+        private void spawnRate_Tick(object? sender, EventArgs e) //SpawnRate Timer for letters
         {
             //Creating new label
-            if ((lettersList.Count + lettersRemoved) < alphabet.Length)
+            if ((lettersList.Count + lettersRemoved + lettersSaved) < alphabet.Length)
             {
                 Label newLetter = new Label();
-                newLetter.Content = alphabet[lettersList.Count + lettersRemoved];
+                newLetter.Content = alphabet[lettersList.Count + lettersRemoved + lettersSaved];
                 newLetter.Background = Brushes.OrangeRed;
                 newLetter.FontSize = 18;
                 Canvas.SetLeft(newLetter, 0);
-                Canvas.SetTop(newLetter, gameCanvas.ActualHeight - leftSideShore.Height - (newLetter.FontSize + 15));
+                Canvas.SetTop(newLetter, gameCanvas.ActualHeight - leftSideShore.Height - (newLetter.FontSize + 15)); //15px offset for maintaining collision state (one pixel in leftSideShore)
 
                 gameCanvas.Children.Add(newLetter);
                 lettersList.Add(new Letters(newLetter, true, false));
@@ -178,31 +187,27 @@ namespace WPF_Game_SaveLetters
 
         }
 
-        private bool CollisionDetectRect(Shape shape1, Shape shape2)
+        private bool CollisionDetectRect(Shape shape1, Shape shape2) //shape X shape
         {
             Rect rect1 = new Rect(Canvas.GetLeft(shape1), Canvas.GetTop(shape1), shape1.Width, shape1.Height);
             Rect rect2 = new Rect(Canvas.GetLeft(shape2), Canvas.GetTop(shape2), shape2.Width, shape2.Height);
 
             if (rect1.IntersectsWith(rect2))
                 return true;
-
             else
                 return false;
         }
 
-        private bool CollisionDetectRect(Label label, Shape shape)
+        private bool CollisionDetectRect(Label label, Shape shape) //label X shape
         {
             Rect rect1 = new Rect();
-            //rect1.Location = label.PointToScreen(new Point(0, 0));
             rect1.Location = new Point(Canvas.GetLeft(label), Canvas.GetTop(label));
             rect1.Height = label.ActualHeight;
             rect1.Width = label.ActualWidth;
-
             Rect rect2 = new Rect(Canvas.GetLeft(shape), Canvas.GetTop(shape), shape.Width, shape.Height);
 
             if (rect1.IntersectsWith(rect2))
                 return true;
-
             else
                 return false;
         }

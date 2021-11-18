@@ -18,8 +18,8 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Label x:Name="labelDrowned" Grid.Column="0" Grid.Row="0" Content="Počet utopených písmenek: " Foreground="Black"/>
-                <Label x:Name="labelSaved" Grid.Row="1" HorizontalAlignment="Left" Content="Počet zachráněných písmenek: " Foreground="Black"/>
+                <Label x:Name="labelDrowned" Grid.Column="0" Grid.Row="0" Content="Počet utopených písmenek: 0" Foreground="Black"/>
+                <Label x:Name="labelSaved" Grid.Row="1" HorizontalAlignment="Left" Content="Počet zachráněných písmenek: 0" Foreground="Black"/>
 
             </Grid>
         </Canvas>
