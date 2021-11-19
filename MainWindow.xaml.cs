@@ -39,6 +39,7 @@ namespace WPF_Game_SaveLetters
         Rectangle bottomSideShore = new Rectangle { Fill = Brushes.Blue }; //water
         Rectangle boat = new Rectangle { Fill = Brushes.SaddleBrown };
         private bool boatIsMoving = false;
+        private bool boatIsUnloading = false;
 
         //Timers
         DispatcherTimer physicsUpdate = new DispatcherTimer();
@@ -61,7 +62,7 @@ namespace WPF_Game_SaveLetters
             physicsUpdate.Interval = new TimeSpan(0, 0, 0, 0, 20); //40ms => 50fps
 
             spawnRate.Tick += new EventHandler(spawnRate_Tick);
-            spawnRate.Interval = new TimeSpan(0, 0, 0, 2); //every2 seconds
+            spawnRate.Interval = new TimeSpan(0, 0, 0, 3); //every 3 seconds
 
         }
 
@@ -120,17 +121,21 @@ namespace WPF_Game_SaveLetters
             keyLeftDown = KeyBoardHoldCheck(Key.Left);
             keyRightDown = KeyBoardHoldCheck(Key.Right);
 
-            if (keyLeftDown && !CollisionDetectRect(boat, leftSideShore))
+            if (keyLeftDown && !CollisionDetect(boat, leftSideShore))
             {
                 Canvas.SetLeft(boat, Canvas.GetLeft(boat) - boatSpeed); //move by x pixels per physics_update (tick)
                 boatIsMoving = true;
             }
 
-            else if (keyRightDown && !CollisionDetectRect(boat, rightSideShore))
+            else if (keyRightDown)
             {
-                Canvas.SetLeft(boat, Canvas.GetLeft(boat) + boatSpeed);
-                boatIsMoving = true;
-
+                if (!CollisionDetect(boat, rightSideShore))
+                {
+                    Canvas.SetLeft(boat, Canvas.GetLeft(boat) + boatSpeed);
+                    boatIsMoving = true;
+                }
+                else
+                    boatIsUnloading = true;
             }
 
             //Move every letter in list
@@ -139,20 +144,19 @@ namespace WPF_Game_SaveLetters
                 if (!lettersList[i].aboard)
                     Canvas.SetLeft(lettersList[i].letter, Canvas.GetLeft(lettersList[i].letter) + letterSpeed);
 
-                if (!CollisionDetectRect(lettersList[i].letter, leftSideShore)) //When there is no groud on left side
+                if (!CollisionDetect(lettersList[i].letter, leftSideShore) && !CollisionDetect(lettersList[i].letter, rightSideShore)) //When there is no groud on left side or right side
                 {
-                    if (!CollisionDetectRect(lettersList[i].letter, boat) || lettersList[i].isFalling) //when there is no boat
+                    if (!CollisionDetect(lettersList[i].letter, boat) || lettersList[i].isFalling) //when there is no boat
                     {
                         Letters lt = lettersList[i]; //set it to permanent fall (this avoids clipping inside the boat)
                         lt.isFalling = true;
                         lettersList[i] = lt;
-
                         Canvas.SetTop(lettersList[i].letter, Canvas.GetTop(lettersList[i].letter) + 10); //move down by 10px
                     }
 
                     else //the letters are aboard
                     {
-                        if (keyRightDown) //stop movement of numbers present on the platform
+                        if (keyRightDown && boatIsMoving) //stop movement of numbers present on the platform
                         {
                             Letters lt = lettersList[i];
                             lt.aboard = true;
@@ -161,11 +165,15 @@ namespace WPF_Game_SaveLetters
                         }
 
                         else if (keyLeftDown && boatIsMoving)
-                        {
                             Canvas.SetLeft(lettersList[i].letter, Canvas.GetLeft(lettersList[i].letter) - boatSpeed);
-                        }
-
                     }
+                }
+
+                if (boatIsUnloading)
+                {
+                    Letters lt = lettersList[i];
+                    lt.aboard = false;
+                    lettersList[i] = lt;
                 }
 
                 //When letter gets behind canvas it gets destroyed
@@ -174,7 +182,7 @@ namespace WPF_Game_SaveLetters
                     gameCanvas.Children.Remove(lettersList[i].letter);
                     lettersList.RemoveAt(i);
                     lettersSaved++;
-                    labelDrowned.Content = "Počet zachráněných písmenek: " + lettersSaved; //change text in UI
+                    labelSaved.Content = "Počet zachráněných písmenek: " + lettersSaved; //change text in UI
                 }
 
                 //When letter gets behind canvas it gets destroyed (in water)
@@ -194,6 +202,7 @@ namespace WPF_Game_SaveLetters
                 physicsUpdate.Stop();
             }
 
+            boatIsUnloading = false;
             boatIsMoving = false;
         }
 
@@ -216,7 +225,7 @@ namespace WPF_Game_SaveLetters
                 spawnRate.Stop();
         }
 
-        private bool CollisionDetectRect(Shape shape1, Shape shape2) //shape X shape
+        private bool CollisionDetect(Shape shape1, Shape shape2) //shape X shape
         {
             Rect rect1 = new Rect(Canvas.GetLeft(shape1), Canvas.GetTop(shape1), shape1.Width, shape1.Height);
             Rect rect2 = new Rect(Canvas.GetLeft(shape2), Canvas.GetTop(shape2), shape2.Width, shape2.Height);
@@ -227,7 +236,7 @@ namespace WPF_Game_SaveLetters
                 return false;
         }
 
-        private bool CollisionDetectRect(Label label, Shape shape) //label X shape
+        private bool CollisionDetect(Label label, Shape shape) //label X shape
         {
             Rect rect1 = new Rect();
             rect1.Location = new Point(Canvas.GetLeft(label), Canvas.GetTop(label));
