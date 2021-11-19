@@ -198,7 +198,7 @@ namespace WPF_Game_SaveLetters
 
             if ((lettersRemoved + lettersSaved) == alphabet.Length)
             {
-                MessageBox.Show("The end");
+                MessageBox.Show($"Konec hry! Počet zachráněných písmenek: {lettersSaved} a počet utopených písmenek byl: {lettersRemoved}");
                 physicsUpdate.Stop();
             }
 
