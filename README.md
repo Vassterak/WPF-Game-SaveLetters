@@ -1,3 +1,3 @@
 # WPF-Game-SaveLetters
-
-Another school homework
+Simple video game.
+ **Warning game UI is in Czech language (school homework)**
